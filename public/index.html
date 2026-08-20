@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- ANTI-BOT PRIVACY SHIELD: Crucial to prevent Sahibinden from seeing localhost:3010 in the Referer header -->
+  <meta name="referrer" content="no-referrer">
+  <title>Sahibinden.com İzmir Kiralık Ev Takip Botu & Anlık Bildirim Paneli</title>
+  <meta name="description" content="Sahibinden.com İzmir kiralık konut ilanlarını anlık tarayan, yeni ilan düştüğünde Telegram, Discord, Masaüstü ve Sesli bildirim gönderen bot.">
+  
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="dark-theme">
+  
+  <!-- Top Navigation Header -->
+  <header class="app-header">
+    <div class="header-container">
+      
+      <!-- Brand & City Selector -->
+      <div class="brand-logo">
+        <div class="logo-radar">
+          <div class="radar-sweep"></div>
+          <i class="fa-solid fa-house-signal"></i>
+        </div>
+        <div class="logo-text">
+          <div class="logo-title-row">
+            <h1>Sahibinden<span>İzmirBot</span></h1>
+            <span class="city-pill"><i class="fa-solid fa-location-dot"></i> İzmir</span>
+          </div>
+          <p class="subtitle">Kiralık Konut Anlık Bildirim & Fiyat Takip Sistemi</p>
+        </div>
+      </div>
+
+      <!-- Header Action Controls -->
+      <div class="header-actions">
+        
+        <!-- Live SSE Status Indicator -->
+        <div class="bot-status-pill" id="botStatusPill" title="Sunucu Canlı Akış Durumu">
+          <span class="status-dot green" id="statusDot"></span>
+          <span class="status-text" id="statusText">İzmir Canlı Takipte</span>
+        </div>
+
+        <!-- Data Quality Status Pill -->
+        <div class="anti-bot-pill" id="dataQualityPill" title="Canlı veri kalitesi ve kaynak durumu">
+          <i class="fa-solid fa-circle-info" id="dataQualityIcon"></i>
+          <span id="dataQualityText">Kaynaklar kontrol ediliyor</span>
+        </div>
+
+        <!-- Audio Alert Toggle -->
+        <button class="icon-toggle-btn active" id="btnToggleSound" title="Sesli Bildirim Aç/Kapat">
+          <i class="fa-solid fa-volume-high" id="soundIcon"></i>
+        </button>
+
+        <!-- Notification Bell & Badge -->
+        <button class="icon-toggle-btn" id="btnNotificationCenter" title="Bildirim Merkezi">
+          <i class="fa-solid fa-bell"></i>
+          <span class="notification-badge" id="notifBadge">0</span>
+        </button>
+
+        <!-- Add Custom Real Listing Button -->
+        <button class="btn btn-secondary" id="btnOpenAddListing" title="Gerçek Sahibinden İlanı veya Arama Linki Ekle">
+          <i class="fa-solid fa-plus text-green"></i>
+          <span>Gerçek İlan Ekle</span>
+        </button>
+
+        <!-- Manual Instant Scan Button -->
+        <button class="btn btn-primary btn-glow" id="btnManualScan">
+          <i class="fa-solid fa-rotate-right" id="scanIcon"></i>
+          <span>İzmir'i Tara</span>
+        </button>
+
+        <!-- Filter & Channel Settings Modal Trigger -->
+        <button class="btn btn-secondary" id="btnOpenSettings" title="Bot & Bildirim Ayarları">
+          <i class="fa-solid fa-sliders"></i>
+          <span>Ayarlar</span>
+        </button>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- Top Navigation View Mode Switcher -->
+  <nav class="main-nav-tabs-bar">
+    <div class="nav-tabs-container">
+      <button class="main-nav-tab active" id="tabModeAll" data-mode="all">
+        <i class="fa-solid fa-layer-group"></i> Tüm Portallar Havuzu
+      </button>
+      <button class="main-nav-tab sahibinden-tab" id="tabModeSahibinden" data-mode="sahibinden">
+        <span class="tab-shb-badge">🟡 SAHİBİNDEN.COM</span>
+        <span>Özel Sahibinden Canlı Radarı</span>
+        <span class="live-pulse-badge" id="emailRadarBadge">E-POSTA RADARI</span>
+      </button>
+      <button class="main-nav-tab owner-tab" id="tabModeOwner" data-mode="owner">
+        <i class="fa-solid fa-house-chimney-user text-yellow"></i>
+        <span>🏠 Komisyonsuz (Ev Sahibinden)</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Notification Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Main Application Wrapper -->
+  <main class="main-wrapper">
+
+    <!-- Dedicated Sahibinden.com VIP Hero Widget (Visible in Sahibinden Mode) -->
+    <div class="sahibinden-vip-hero hidden" id="sahibindenHero">
+      <div class="shb-hero-badge">
+        <span class="shb-logo-text">sahibinden.com</span>
+        <span class="shb-sub-tag">İZMİR KİRALIK EV RADARI</span>
+      </div>
+      <div class="shb-hero-content">
+        <h3>Sahibinden.com E-posta İlan Radarı</h3>
+        <p>Sahibinden.com verileri yalnızca yapılandırılmış Gmail bildirimlerinden içe aktarılır. Bağlantı durumu aşağıdaki kaynak panelinde gösterilir.</p>
+      </div>
+      <div class="shb-quick-import-box">
+        <div class="shb-input-wrap">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" id="shbQuickInput" placeholder="Sahibinden İlan No (örn: 1234567890) veya İlan Linki yapıştırın...">
+        </div>
+        <button class="btn btn-shb-yellow" id="btnShbQuickImport">
+          <i class="fa-solid fa-bolt"></i> Radara Ekle
+        </button>
+      </div>
+    </div>
+
+    <section class="source-health-bar glass-card" id="sourceHealthBar" aria-live="polite">
+      <div class="source-health-title"><i class="fa-solid fa-heart-pulse"></i> Kaynak Sağlığı</div>
+      <div class="source-health-items" id="sourceHealthItems">
+        <span class="source-health-item idle">Durum alınıyor…</span>
+      </div>
+    </section>
+    
+    <!-- Quick District Filter Bar (İzmir Özel) -->
+    <section class="district-bar-section glass-card">
+      <div class="district-bar-label">
+        <i class="fa-solid fa-map-location-dot"></i> Hızlı İlçe:
+      </div>
+      <div class="district-chips-wrapper" id="districtChips">
+        <button class="district-chip active" data-district="all">Tümü (İzmir)</button>
+        <button class="district-chip" data-district="Karşıyaka">Karşıyaka</button>
+        <button class="district-chip" data-district="Bostanlı">Bostanlı</button>
+        <button class="district-chip" data-district="Bornova">Bornova</button>
+        <button class="district-chip" data-district="Konak">Konak / Alsancak</button>
+        <button class="district-chip" data-district="Bayraklı">Bayraklı</button>
+        <button class="district-chip" data-district="Urla">Urla</button>
+        <button class="district-chip" data-district="Balçova">Balçova</button>
+        <button class="district-chip" data-district="Buca">Buca</button>
+        <button class="district-chip" data-district="Narlıdere">Narlıdere</button>
+        <button class="district-chip" data-district="Çeşme">Çeşme</button>
+        <button class="district-chip" data-district="Çiğli">Çiğli</button>
+      </div>
+    </section>
+
+    <!-- Metrics Overview Grid -->
+    <section class="metrics-grid">
+      <div class="metric-card glass-card">
+        <div class="metric-icon blue">
+          <i class="fa-solid fa-city"></i>
+        </div>
+        <div class="metric-content">
+          <span class="metric-label">İzmir Aktif İlan</span>
+          <h2 class="metric-value" id="statTotalListings">0</h2>
+          <span class="metric-sub text-muted"><i class="fa-solid fa-circle-check text-blue"></i> Takipte</span>
+        </div>
+      </div>
+
+      <div class="metric-card glass-card">
+        <div class="metric-icon green">
+          <i class="fa-solid fa-arrow-trend-down"></i>
+        </div>
+        <div class="metric-content">
+          <span class="metric-label">Fiyatı Düşen İlanlar</span>
+          <h2 class="metric-value text-green" id="statPriceDrops">0</h2>
+          <span class="metric-sub text-green"><i class="fa-solid fa-bolt"></i> Anlık İndirim Fırsatı</span>
+        </div>
+      </div>
+
+      <div class="metric-card glass-card">
+        <div class="metric-icon purple">
+          <i class="fa-solid fa-sparkles"></i>
+        </div>
+        <div class="metric-content">
+          <span class="metric-label">Bugün Düşen Yeni İlanlar</span>
+          <h2 class="metric-value text-purple" id="statNewListings">0</h2>
+          <span class="metric-sub text-purple"><i class="fa-solid fa-fire"></i> Anında Bildirildi</span>
+        </div>
+      </div>
+
+      <div class="metric-card glass-card">
+        <div class="metric-icon orange">
+          <i class="fa-solid fa-turkish-lira-sign"></i>
+        </div>
+        <div class="metric-content">
+          <span class="metric-label">Ortalama Kira</span>
+          <h2 class="metric-value" id="statAvgPrice">0 TL</h2>
+          <span class="metric-sub text-muted">İzmir Geneli</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Link privacy guidance -->
+    <div class="antibot-info-banner glass-card">
+      <div class="banner-icon-shield">
+        <i class="fa-solid fa-shield-heart text-green"></i>
+      </div>
+      <div class="banner-text">
+        <strong>Gizlilik Odaklı Bağlantı Açma:</strong>
+        <span>İlan bağlantıları <em>no-referrer</em> ve <em>noopener</em> ile yeni sekmede açılır. Hedef portalın erişim kararı ve bot koruması kendi kontrolündedir.</span>
+      </div>
+    </div>
+
+    <!-- Live Radar Alert Banner -->
+    <div class="radar-live-banner glass-card" id="radarBanner">
+      <div class="radar-pulse"></div>
+      <div class="radar-content">
+        <strong>İzmir Kiralık İlan Takip Merkezi</strong>
+        <p id="radarStatusMsg">Kaynakların gerçek zamanlı durumu yukarıdaki sağlık panelinde gösterilir.</p>
+      </div>
+      <div class="radar-right">
+        <span class="badge-tag live-badge"><i class="fa-solid fa-satellite-dish"></i> SSE BAĞLI</span>
+      </div>
+    </div>
+
+    <!-- Filters & Search Toolbar -->
+    <section class="toolbar-section glass-card">
+      <div class="search-box">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" id="searchInput" placeholder="İzmir ilçe, mahalle (Bostanlı, Alsancak...) veya başlık ara..." autocomplete="off">
+      </div>
+
+      <div class="filter-group">
+        <div class="filter-item">
+          <label><i class="fa-solid fa-door-open"></i> Oda:</label>
+          <select id="roomFilter" class="custom-select">
+            <option value="all">Tüm Odalar</option>
+            <option value="1+1">1+1</option>
+            <option value="2+1">2+1</option>
+            <option value="3+1">3+1</option>
+            <option value="4+1">4+1 ve Üzeri</option>
+          </select>
+        </div>
+
+        <div class="filter-item">
+          <label><i class="fa-solid fa-arrow-down-short-wide"></i> Sırala:</label>
+          <select id="sortBySelect" class="custom-select">
+            <option value="date_desc">En Yeni İlanlar (Varsayılan)</option>
+            <option value="price_asc">Fiyat: Düşükten Yükseğe</option>
+            <option value="price_desc">Fiyat: Yüksekten Düşüğe</option>
+            <option value="price_drop">En Yüksek İndirim Oranı %</option>
+          </select>
+        </div>
+
+        <div class="toggle-chips">
+          <button class="chip-btn chip-owner-btn" id="chipOwnerOnly" title="Emlakçı komisyonu olmayan doğrudan mülk sahibinden ilanları filtrele">
+            <i class="fa-solid fa-house-chimney-user text-yellow"></i> 🏠 Sadece Sahibinden (Komisyonsuz)
+          </button>
+          <button class="chip-btn" id="chipNewOnly">
+            <i class="fa-solid fa-sparkles"></i> Yeni Düşenler
+          </button>
+          <button class="chip-btn" id="chipPriceDrop">
+            <i class="fa-solid fa-tags"></i> İndirimli İlanlar
+          </button>
+          <button class="chip-btn" id="chipFavorites">
+            <i class="fa-solid fa-heart"></i> Favorilerim
+          </button>
+        </div>
+
+        <div class="portal-source-group" id="portalSourceChips">
+          <button class="source-chip-btn active" data-source="all" title="Tüm Portallardan gelen ilanlar">
+            <i class="fa-solid fa-layer-group"></i> Tüm Portallar
+          </button>
+          <button class="source-chip-btn sahibinden" data-source="sahibinden" title="Sahibinden & Komisyonsuz İlanlar">
+            <span class="source-dot yellow"></span> Sahibinden
+          </button>
+          <button class="source-chip-btn" data-source="hepsiemlak" title="Hepsiemlak kaynağı">
+            <span class="source-dot blue"></span> Hepsiemlak
+          </button>
+          <button class="source-chip-btn emlakjet" data-source="emlakjet" title="Emlak Portalları İlanları">
+            <span class="source-dot red"></span> Emlakjet
+          </button>
+        </div>
+
+        <a href="/api/export/csv" class="btn btn-outline" id="btnExportCSV" title="İzmir İlanlarını Excel / CSV formatında indir">
+          <i class="fa-solid fa-file-csv"></i> CSV İndir
+        </a>
+      </div>
+    </section>
+
+    <!-- Main Content Layout (Listings + Live Sidebar) -->
+    <div class="content-layout">
+      
+      <!-- Listings Section -->
+      <section class="listings-section">
+        <div class="section-header">
+          <h3 class="section-title">
+            <i class="fa-solid fa-building-user text-blue"></i>
+            İzmir Kiralık Ev İlanları (<span id="listingsCount">0</span>)
+          </h3>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div class="live-auto-refresh-pill" id="autoRefreshIndicator" title="Kategori ve arama sayfası sürekli canlı yenilenir, en yeni ilanlar en üstte gösterilir">
+              <span class="pulse-dot-mini"></span>
+              <span>Canlı Akış & Otomatik Yenileme Aktif</span>
+            </div>
+            <div class="last-checked" id="lastCheckedText">Son Kontrol: Az önce</div>
+          </div>
+        </div>
+
+        <!-- Grid Container -->
+        <div class="listings-grid" id="listingsContainer">
+          <!-- Dynamically populated via JS -->
+        </div>
+
+        <!-- Empty State -->
+        <div class="empty-state hidden" id="emptyState">
+          <i class="fa-solid fa-ghost"></i>
+          <h4>Kriterlere Uygun İzmir İlanı Bulunamadı</h4>
+          <p>Filtrelerinizi temizleyin veya yeni bir tarama başlatarak botun yeni ilanları bulmasını sağlayın.</p>
+          <button class="btn btn-primary mt-3" id="btnResetFilters">Filtreleri Sıfırla</button>
+        </div>
+      </section>
+
+      <!-- Live Activity & Notification Sidebar -->
+      <aside class="sidebar-section glass-card">
+        
+        <!-- Sidebar Tabs -->
+        <div class="sidebar-tabs">
+          <button class="sidebar-tab active" id="tabLogsBtn">
+            <i class="fa-solid fa-terminal"></i> Bot Logları
+          </button>
+          <button class="sidebar-tab" id="tabNotifsBtn">
+            <i class="fa-solid fa-bell"></i> Bildirimler (<span id="sideNotifCount">0</span>)
+          </button>
+        </div>
+
+        <!-- Tab 1: Bot Console Activity Logs -->
+        <div class="tab-content" id="tabLogsContent">
+          <div class="logs-container" id="logsContainer">
+            <!-- Logs injected via JS -->
+          </div>
+        </div>
+
+        <!-- Tab 2: Dispatched Notifications History -->
+        <div class="tab-content hidden" id="tabNotifsContent">
+          <div class="notifs-container" id="sideNotifsContainer">
+            <!-- Notifications injected via JS -->
+          </div>
+        </div>
+
+      </aside>
+
+    </div>
+  </main>
+
+  <!-- ADD CUSTOM / REAL SAHIBINDEN LISTING MODAL -->
+  <div class="modal-backdrop hidden" id="addListingModal">
+    <div class="modal-box glass-card">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <i class="fa-solid fa-circle-plus text-green"></i>
+          <div>
+            <h3>Gerçek Sahibinden İlanı veya Arama Linki Ekle</h3>
+            <p class="text-muted">Sahibinden.com'dan kopyaladığınız herhangi bir canlı ilan URL'sini veya arama linkini yapıştırıp anında takibe alın.</p>
+          </div>
+        </div>
+        <button class="close-modal" id="btnCloseAddListing"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="modal-body">
+        <form id="addListingForm">
+          <div class="form-group">
+            <label for="customUrl"><strong>Sahibinden İlan / Arama URL'si</strong></label>
+            <input type="text" id="customUrl" class="form-input" placeholder="https://www.sahibinden.com/ilan/... veya arama linki" required>
+            <span class="field-hint text-muted">Örn: Sahibinden uygulamasından veya siteden kopyalanan herhangi bir ilan linki</span>
+          </div>
+
+          <div class="form-group">
+            <label for="customTitle">İlan Başlığı</label>
+            <input type="text" id="customTitle" class="form-input" placeholder="Örn: Bostanlı Sahilde Deniz Manzaralı 3+1 Daire">
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="customDistrict">İlçe</label>
+              <select id="customDistrict" class="form-input custom-select">
+                <option value="Karşıyaka">Karşıyaka</option>
+                <option value="Bornova">Bornova</option>
+                <option value="Konak">Konak</option>
+                <option value="Bayraklı">Bayraklı</option>
+                <option value="Urla">Urla</option>
+                <option value="Balçova">Balçova</option>
+                <option value="Buca">Buca</option>
+                <option value="Narlıdere">Narlıdere</option>
+                <option value="Çeşme">Çeşme</option>
+                <option value="Çiğli">Çiğli</option>
+                <option value="Gaziemir">Gaziemir</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="customHood">Mahalle / Semt</label>
+              <input type="text" id="customHood" class="form-input" placeholder="Örn: Bostanlı, Alsancak, Kazımdirik...">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="customPrice">Kira Bedeli (TL/ay)</label>
+              <input type="number" id="customPrice" class="form-input" placeholder="35000" step="500" required>
+            </div>
+
+            <div class="form-group">
+              <label for="customRooms">Oda Sayısı</label>
+              <select id="customRooms" class="form-input custom-select">
+                <option value="1+1">1+1</option>
+                <option value="2+1" selected>2+1</option>
+                <option value="3+1">3+1</option>
+                <option value="4+1">4+1</option>
+                <option value="Stüdyo">Stüdyo (1+0)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" id="btnCancelAddListing">Vazgeç</button>
+            <button type="submit" class="btn btn-primary btn-glow">
+              <i class="fa-solid fa-check"></i> İlanı Takibe Al & Kaydet
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings & Notification Channels Modal -->
+  <div class="modal-backdrop hidden" id="settingsModal">
+    <div class="modal-box glass-card settings-modal-box">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <i class="fa-solid fa-sliders text-blue"></i>
+          <div>
+            <h3>Bot ve Bildirim Ayarları</h3>
+            <p class="text-muted">İzmir kiralık ev takip kriterleri, kaynaklar ve Telegram/Discord kanalları</p>
+          </div>
+        </div>
+        <button class="close-modal" id="btnCloseSettings"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="modal-body">
+        <form id="settingsForm">
+          
+          <!-- Section 1: Lokasyon ve Filtreler -->
+          <div class="form-section">
+            <h4 class="form-section-title"><i class="fa-solid fa-location-crosshairs"></i> 1. Arama Kriterleri</h4>
+            
+            <div class="form-row">
+              <div class="form-group">
+                <label for="settingCity">Hedef Şehir</label>
+                <input type="text" id="settingCity" class="form-input" value="İzmir" readonly>
+              </div>
+              <div class="form-group">
+                <label for="settingDistrict">Hedef İlçe</label>
+                <select id="settingDistrict" class="form-input custom-select">
+                  <option value="all">Tüm İzmir (Önerilen)</option>
+                  <option value="Karşıyaka">Karşıyaka</option>
+                  <option value="Bostanlı">Bostanlı</option>
+                  <option value="Bornova">Bornova</option>
+                  <option value="Konak">Konak / Alsancak</option>
+                  <option value="Bayraklı">Bayraklı</option>
+                  <option value="Urla">Urla</option>
+                  <option value="Balçova">Balçova</option>
+                  <option value="Buca">Buca</option>
+                  <option value="Narlıdere">Narlıdere</option>
+                  <option value="Çeşme">Çeşme</option>
+                  <option value="Çiğli">Çiğli</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="settingMinPrice">Min Fiyat (TL)</label>
+                <input type="number" id="settingMinPrice" class="form-input" value="10000" step="1000">
+              </div>
+              <div class="form-group">
+                <label for="settingMaxPrice">Max Fiyat (TL)</label>
+                <input type="number" id="settingMaxPrice" class="form-input" value="65000" step="1000">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="settingInterval">Otomatik Tarama Sıklığı (Dakika)</label>
+              <select id="settingInterval" class="form-input custom-select">
+                <option value="1">Her 1 Dakikada Bir (Çok Hızlı / Anlık)</option>
+                <option value="3">Her 3 Dakikada Bir</option>
+                <option value="5" selected>Her 5 Dakikada Bir (Önerilen)</option>
+                <option value="15">Her 15 Dakikada Bir</option>
+                <option value="30">Her 30 Dakikada Bir</option>
+              </select>
+            </div>
+
+            <div class="form-checkbox">
+              <input type="checkbox" id="settingAutoScan" checked>
+              <label for="settingAutoScan"><strong>Arka Planda Otomatik Taramayı Aç</strong></label>
+            </div>
+          </div>
+
+          <!-- Section 2: Anti-Bot & Gizlilik Kalkanı -->
+          <div class="form-section">
+            <h4 class="form-section-title"><i class="fa-solid fa-shield-halved text-green"></i> 2. Bağlantı Gizliliği</h4>
+            <p class="section-desc">İlan bağlantıları yeni sekmede no-referrer ve noopener ile açılır. Bu ayar hedef sitelerin erişim kurallarını aşmayı garanti etmez.</p>
+
+            <div class="form-checkbox">
+              <input type="checkbox" id="settingNoReferrer" checked disabled>
+              <label for="settingNoReferrer"><strong>No-Referrer Gizlilik Ayarı (Her Zaman Açık):</strong> Yeni sekmeye kaynak sayfa bilgisi gönderilmez.</label>
+            </div>
+          </div>
+
+          <!-- Section 3: Telegram Bildirimleri -->
+          <div class="form-section">
+            <div class="form-section-header">
+              <h4 class="form-section-title"><i class="fa-brands fa-telegram text-blue"></i> 3. Telegram Bot Bildirimleri</h4>
+              <label class="switch">
+                <input type="checkbox" id="settingTelegramEnabled">
+                <span class="slider round"></span>
+              </label>
+            </div>
+
+            <p class="section-desc">Sahibinden.com'da yeni ev düştüğünde doğrudan Telegram'ınıza fotoğraf ve linkli mesaj gönderir.</p>
+            <p class="section-desc">Bot token kalıcı olarak tarayıcıdan kaydedilmez. Servis için <code>TELEGRAM_BOT_TOKEN</code> ve <code>TELEGRAM_CHAT_ID</code> ortam değişkenlerini kullanın.</p>
+
+            <div class="form-group">
+              <label for="settingTgToken">Telegram Bot Token (BotFather'dan alınan)</label>
+              <input type="password" id="settingTgToken" class="form-input" placeholder="Yalnızca bağlantı testi için geçici token">
+            </div>
+
+            <div class="form-group">
+              <label for="settingTgChatId">Telegram Chat ID (Kullanıcı / Grup ID)</label>
+              <input type="text" id="settingTgChatId" class="form-input" placeholder="Örn: 987654321">
+            </div>
+
+            <div class="test-btn-row">
+              <button type="button" class="btn btn-secondary btn-sm" id="btnTestTelegram">
+                <i class="fa-brands fa-telegram"></i> Telegram Test Mesajı Gönder
+              </button>
+              <span class="test-result-msg" id="tgTestResult"></span>
+            </div>
+          </div>
+
+          <!-- Section 4: Discord Webhook Bildirimleri -->
+          <div class="form-section">
+            <div class="form-section-header">
+              <h4 class="form-section-title"><i class="fa-brands fa-discord text-purple"></i> 4. Discord Webhook Bildirimleri</h4>
+              <label class="switch">
+                <input type="checkbox" id="settingDiscordEnabled">
+                <span class="slider round"></span>
+              </label>
+            </div>
+
+            <div class="form-group">
+              <label for="settingDiscordWebhook">Discord Webhook URL</label>
+              <input type="password" id="settingDiscordWebhook" class="form-input" placeholder="Yalnızca bağlantı testi için geçici webhook">
+            </div>
+            <p class="section-desc">Kalıcı servis yapılandırmasında <code>DISCORD_WEBHOOK_URL</code> ortam değişkenini kullanın.</p>
+
+            <div class="test-btn-row">
+              <button type="button" class="btn btn-secondary btn-sm" id="btnTestDiscord">
+                <i class="fa-brands fa-discord"></i> Discord Test Bildirimi Gönder
+              </button>
+              <span class="test-result-msg" id="dcTestResult"></span>
+            </div>
+          </div>
+
+          <!-- Section 5: Tarayıcı ve Ses Bildirimleri -->
+          <div class="form-section">
+            <h4 class="form-section-title"><i class="fa-solid fa-volume-high"></i> 5. Tarayıcı & Ses Bildirimleri</h4>
+            
+            <div class="form-checkbox">
+              <input type="checkbox" id="settingSoundAlerts" checked>
+              <label for="settingSoundAlerts">Yeni ilan geldiğinde <strong>Sesli Radar Uyarısı</strong> çal</label>
+            </div>
+
+            <div class="form-checkbox">
+              <input type="checkbox" id="settingDesktopPush" checked>
+              <label for="settingDesktopPush">Masaüstü / Ekran bildirimleri göster (HTML5 Web Notifications)</label>
+            </div>
+
+            <div class="test-btn-row">
+              <button type="button" class="btn btn-secondary btn-sm" id="btnTestAudio">
+                <i class="fa-solid fa-play"></i> Ses Testi Çal
+              </button>
+              <button type="button" class="btn btn-secondary btn-sm" id="btnRequestPushPerm">
+                <i class="fa-solid fa-bell"></i> Masaüstü Bildirim İzni Ver
+              </button>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" id="btnCancelSettings">Vazgeç</button>
+            <button type="submit" class="btn btn-primary btn-glow">Ayarları Kaydet ve Uygula</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Price History Modal -->
+  <div class="modal-backdrop hidden" id="historyModal">
+    <div class="modal-box glass-card">
+      <div class="modal-header">
+        <div>
+          <h3 id="historyModalTitle">Fiyat Değişim Geçmişi</h3>
+          <p class="text-muted" id="historyModalSub">İlanın zaman içindeki fiyat hareketleri</p>
+        </div>
+        <button class="close-modal" id="btnCloseHistory"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="history-timeline" id="historyTimeline">
+          <!-- Timeline injected via JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Listing Full Details Modal -->
+  <div class="modal-backdrop hidden" id="detailModal">
+    <div class="modal-box glass-card detail-modal-box">
+      <div class="modal-header">
+        <h3 id="detailTitle">İlan Detayları</h3>
+        <button class="close-modal" id="btnCloseDetail"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body" id="detailBody">
+        <!-- Injected via JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Application JS -->
+  <script src="app.js"></script>
+</body>
+</html>

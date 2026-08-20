@@ -1,0 +1,9 @@
+.env
+node_modules/
+data/chrome_session/
+data/backups/
+data/db.json
+npm-debug.log*
+.DS_Store
+server 2.js
+scratch_test_scraper.js

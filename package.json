@@ -1,0 +1,33 @@
+{
+  "name": "sahibinden-kiralik-bot",
+  "version": "1.0.0",
+  "description": "Sahibinden kiralık konut ilan takip botu ve yönetim paneli",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "check": "node --check server.js && node --check scraper.js && node --check database.js",
+    "test": "node --test",
+    "data:check": "node scripts/migrate-data.js",
+    "data:migrate": "node scripts/migrate-data.js --apply"
+  },
+  "keywords": [
+    "sahibinden",
+    "bot",
+    "rental",
+    "kiralik",
+    "scraper",
+    "dashboard"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cheerio": "^1.2.0",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "imap": "^0.8.19",
+    "mailparser": "^3.9.15",
+    "puppeteer-core": "^25.8.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
+  }
+}
