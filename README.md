@@ -22,6 +22,8 @@ npm start
 
 Panel varsayılan olarak [http://127.0.0.1:3010](http://127.0.0.1:3010) adresinde açılır.
 
+Statik arayüz demosu GitHub Pages üzerinden yayınlanır. GitHub Pages bir Node.js sunucusu çalıştıramadığı için bu demo canlı tarama yapmaz; gerçek bot `npm start` ile çalışan yerel sunucudur.
+
 Gizli bilgiler kaynak koda veya ayar veritabanına yazılmaz. E-posta, Telegram ve Discord bilgilerini `.env` dosyasında tanımlayın.
 
 ## Kontroller
